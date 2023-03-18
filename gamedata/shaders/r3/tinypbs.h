@@ -2,21 +2,21 @@
 #define TINYPBS
 
 /*
-								  __
-						 /\    .-" /
-						/  ; .'  .' 
-					   :   :/  .'   
-						\  ;-.'     
-		   .--""""--..__/     `.    
-		 .'           .'    `o  \   
-		/                    `   ;  
-	   :      TinyPBS     \      :  
+				      __
+			     /\    .-" /
+			    /  ; .'  .' 
+			   :   :/  .'   
+			    \  ;-.'     
+	       .--""""--..__/     `.    
+	     .'           .'    `o  \   
+	    /                    `   ;  
+	   :                  \      :  
 	 .-;        -.         `.__.-'  
 	:  ;          \     ,   ;       
-	'._:           ;   :   ( 
-		\/  .__    ;    \   `-. 
-	     ;     "-,/_..--"`-..__)
-		 '""--.._:
+	'._:           ;   :   (        
+	    \/  .__    ;    \   `-.     
+	      ;     "-,/_..--"`-..__)    
+	     '""--.._:
 
 	A tiny implementation of physically based shading model for S.T.A.L.K.E.R. Clear Sky.
 
@@ -94,8 +94,8 @@ float3 sample_ggx_ndf(float2 rng, float alpha)
 {
 	float phi = 6.28 * rng.x;
 
-    float cos_theta = sqrt((1.0 - rng.y) / (1.0 + (alpha * alpha - 1.0) * rng.y));
-    float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+	float cos_theta = sqrt((1.0 - rng.y) / (1.0 + (alpha * alpha - 1.0) * rng.y));
+	float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
 
 	float3 H_tangent;
 	sincos(phi, H_tangent.y, H_tangent.x);
@@ -126,26 +126,26 @@ float3 fis_cubemap(float3 N, float3 V, float alpha, float cubemap_width, float b
 
 	//Build orthonormal basis
 	//This was taken from UE4 paper.
-    float3 U = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
-    float3 T = normalize(cross(U, N));
-    float3 B = cross(N, T);
+	float3 U = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+	float3 T = normalize(cross(U, N));
+	float3 B = cross(N, T);
 	
 	//Rotate view direction to tangent space
 	float3 V_tangent = normalize(mul(V, transpose(float3x3(T, B, N))));
 
-    //Accumulator
-    float4 lighting_weight = float4(0.0, 0.0, 0.0, 0.0);
+	//Accumulator
+	float4 lighting_weight = float4(0.0, 0.0, 0.0, 0.0);
 
-    for(int i = 0; i < LV_FIS_SAMPLE_COUNT; i++)
-    {
+	for(int i = 0; i < LV_FIS_SAMPLE_COUNT; i++)
+	{
 		//https://www.shadertoy.com/view/mts3zN
-        float2 rng = frac(0.5 + float(i) * float2(0.245122333753, 0.430159709002));
+		float2 rng = frac(0.5 + float(i) * float2(0.245122333753, 0.430159709002));
 
 		//Microfacet normal in tangent space
-        float3 H_tangent = sample_ggx_ndf(rng, alpha);
+		float3 H_tangent = sample_ggx_ndf(rng, alpha);
 
 		//Light direction in tangent space
-        float3 L_tangent = reflect(-V_tangent, H_tangent);
+		float3 L_tangent = reflect(-V_tangent, H_tangent);
 
 		//NdotL and NdotH. Clamped between 1e-5 - 1.0 due to NaNs...
 		float2 NdotL_H = clamp(float2(L_tangent.z, H_tangent.z), 1e-5, 1.0);
@@ -176,10 +176,10 @@ float3 fis_cubemap(float3 N, float3 V, float alpha, float cubemap_width, float b
 		//Weight the sample by NdotL and accumulate
 		lighting_weight.xyz += sampled_cube * NdotL_H.x;
 		lighting_weight.w += NdotL_H.x;
-    }
+	}
 
-    //Output
-    return lighting_weight.xyz * (1.0 / lighting_weight.w);
+	//Output
+	return lighting_weight.xyz * (1.0 / lighting_weight.w);
 }
 
 //Whole magic starts here...
