@@ -34,8 +34,15 @@ The following G-Buffer layout is used:
 ![s0](screenshot0.jpg)
 ![s1](screenshot1.jpg)
 
+## Requirements
+- PBR textures (see "Textures" section)
+- DX10 renderer
+- r3_gbuffer_opt set to off (you can do it in user.ltx file, or in console)
+
 ## Known issues
 - Detail textures does not work (To be done)
+- Terrain shader is not converted to new texture format (To be done)
+- Parallax mapping is disabled (To be done)
 
 ## Disclaimer
 - This is a project done purely for fun. It does not implement advanced rendering techniques, nor aims to be the most accurate renderer ever.
