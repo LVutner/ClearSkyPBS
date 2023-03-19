@@ -136,7 +136,7 @@ _out main ( _input I, uint iSample : SV_SAMPLEINDEX )
 //		float3       color     = C.rgb + D.rgb*spec+hspecular+hspecular     ;	//	More realistic and contrast specular - Ugrumiy edition
 	
 	//Calculate actual PBS.
-	color =  get_shading(P, N, m_v2w, L, gbd.C, gbd.metalness, gbd.roughness, gbd.hemi, I.tc0.w, env_color.w, sky_s0, sky_s1);
+	color =  get_shading(P, N, m_v2w, L, gbd.C, gbd.metalness, gbd.roughness, gbd.hemi * occ, I.tc0.w, env_color.w, sky_s0, sky_s1);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// For Test ///////////////////////////////////////////////////////////////////
