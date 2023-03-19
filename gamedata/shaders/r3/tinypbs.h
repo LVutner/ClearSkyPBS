@@ -53,6 +53,21 @@
 #define LV_STATIC_METALNESS 0.0 //Metalness value for "flat" geometry
 #define LV_STATIC_ROUGHNESS 0.5 //Roughness value for "flat" geometry
 
+//UDN normal blending
+float3 blend_normal(float3 normal_0, float3 normal_1)
+{
+	return normalize(float3(normal_0.xy + normal_1.xy, normal_0.z));
+}
+
+//Normal reconstruction
+float3 reconstruct_normal(float2 normal)
+{
+	float3 normal_unpacked;
+	normal_unpacked.xy = normal * 2.0 - 1.0;
+	normal_unpacked.z = sqrt(1.0 - saturate(dot(normal_unpacked.xy, normal_unpacked.xy)));
+	return normal_unpacked;
+}
+
 //Samples two cubemaps and interpolates them
 float3 sample_sky(float3 direction, float mip_level, float blend_factor, TextureCube t_current, TextureCube t_next)
 {

@@ -1,10 +1,6 @@
 #ifndef SLOAD_H
 #define SLOAD_H
 
-/*
-	ToDo - Parallax, detail maps
-*/
-
 #include "common.h"
 
 #ifdef	MSAA_ALPHATEST_DX10_1
@@ -34,9 +30,9 @@ struct	surface_bumped
 
 float4 tbase( float2 tc )
 {
-   return	s_base.Sample( smp_base, tc);
+   return s_base.Sample( smp_base, tc);
 }
-/*
+
 #if defined(ALLOW_STEEPPARALLAX) && defined(USE_STEEPPARALLAX)
 
 static const float fParallaxStartFade = 8.0f;
@@ -117,11 +113,6 @@ void UpdateTC( inout p_bumped I)
 }
 
 #endif	//	USE_PARALLAX
-*/
-void UpdateTC( inout p_bumped I)
-{
-	;
-}
 
 surface_bumped sload_i( p_bumped I)
 {
@@ -133,30 +124,27 @@ surface_bumped sload_i( p_bumped I)
 	float4 	NuE	= s_bumpX.Sample( smp_base, I.tcdh);	// IN:	normal_error.height
 
 	S.base		= tbase(I.tcdh);				//	IN:  rgb.a
-    S.normal.xy = Nu.xy * 2.0 - 1.0;
-    S.normal.z = sqrt(1.0 - saturate(dot(S.normal.xy, S.normal.xy)));
+    S.normal = reconstruct_normal(Nu.xy);
 	S.roughness = Nu.z;
 	S.metalness = Nu.w;
-	S.height	= NuE.z;
+	S.height	=  S.normal.z;
 	//S.height	= 0;
 
-#ifdef        USE_TDETAIL
-#ifdef        USE_TDETAIL_BUMP
-	float4 NDetail		= s_detailBump.Sample( smp_base, I.tcdbump);
-	float4 NDetailX		= s_detailBumpX.Sample( smp_base, I.tcdbump);
-//	S.gloss				= S.gloss * NDetail.x * 2;
-	//S.normal			+= NDetail.wzy-.5;
-	S.normal			+= NDetail.wzy + NDetailX.xyz - 1.0h; //	(Nu.wzyx - .5h) + (E-.5)
+#ifdef USE_TDETAIL
+#ifdef USE_TDETAIL_BUMP
+	float4 detail = s_detail.Sample( smp_base, I.tcdbump);
+	float4 NDetail = s_detailBump.Sample( smp_base, I.tcdbump);
+	float4 NDetailX = s_detailBumpX.Sample( smp_base, I.tcdbump);
 
-	float4 detail		= s_detail.Sample( smp_base, I.tcdbump);
-	S.base.rgb			= S.base.rgb * detail.rgb * 2;
+	S.base.rgb = lerp(S.base.rgb, detail.rgb, detail.w);
+	S.normal = blend_normal(S.normal, reconstruct_normal(NDetail.xy));
+	S.roughness = lerp(S.roughness, NDetail.z, detail.w);	
+	S.metalness = lerp(S.metalness, NDetail.w, detail.w);
 
-//	S.base.rgb			= float3(1,0,0);
-#else        //	USE_TDETAIL_BUMP
-	float4 detail		= s_detail.Sample( smp_base, I.tcdbump);
-	S.base.rgb			= S.base.rgb * detail.rgb * 2;
-//	S.gloss				= S.gloss * detail.w * 2;
-#endif        //	USE_TDETAIL_BUMP
+#else //	USE_TDETAIL_BUMP
+	float4 detail = s_detail.Sample( smp_base, I.tcdbump);
+	S.base.rgb = lerp(S.base.rgb, detail.rgb, detail.w);
+#endif // USE_TDETAIL_BUMP
 #endif
 
 	return S;
@@ -177,39 +165,34 @@ surface_bumped sload_i( p_bumped I, float2 pixeloffset )
 	float4 	NuE	= s_bumpX.Sample( smp_base, I.tcdh);	// IN:	normal_error.height
 
 	S.base		= tbase(I.tcdh);				//	IN:  rgb.a
-    S.normal.xy = Nu.xy * 2.0 - 1.0;
-    S.normal.z = sqrt(1.0 - saturate(dot(S.normal.xy, S.normal.xy)));
+    S.normal = reconstruct_normal(Nu.xy);
 	S.roughness = Nu.z;
 	S.metalness = Nu.w;
-	S.height	= NuE.z;
-	//S.height	= 0;
+	S.height	=  S.normal.z;
 
-#ifdef        USE_TDETAIL
-#ifdef        USE_TDETAIL_BUMP
+#ifdef USE_TDETAIL
+#ifdef USE_TDETAIL_BUMP
 #ifdef MSAA_ALPHATEST_DX10_1
 #if ( (!defined(ALLOW_STEEPPARALLAX) ) && defined(USE_STEEPPARALLAX) )
    I.tcdbump.xy += pixeloffset.x * ddx(I.tcdbump.xy) + pixeloffset.y * ddy(I.tcdbump.xy);
 #endif
 #endif
+	float4 detail = s_detail.Sample( smp_base, I.tcdbump);
+	float4 NDetail = s_detailBump.Sample( smp_base, I.tcdbump);
+	float4 NDetailX = s_detailBumpX.Sample( smp_base, I.tcdbump);
 
-	float4 NDetail		= s_detailBump.Sample( smp_base, I.tcdbump);
-	float4 NDetailX		= s_detailBumpX.Sample( smp_base, I.tcdbump);
-//	S.gloss				= S.gloss * NDetail.x * 2;
-	//S.normal			+= NDetail.wzy-.5;
-	S.normal			+= NDetail.wzy + NDetailX.xyz - 1.0h; //	(Nu.wzyx - .5h) + (E-.5)
+	S.base.rgb = lerp(S.base.rgb, detail.rgb, detail.w);
+	S.normal = blend_normal(S.normal, reconstruct_normal(NDetail.xy));
+	S.roughness = lerp(S.roughness, NDetail.z, detail.w);	
+	S.metalness = lerp(S.metalness, NDetail.w, detail.w);
 
-	float4 detail		= s_detail.Sample( smp_base, I.tcdbump);
-	S.base.rgb			= S.base.rgb * detail.rgb * 2;
-
-//	S.base.rgb			= float3(1,0,0);
-#else        //	USE_TDETAIL_BUMP
+#else // USE_TDETAIL_BUMP
 #ifdef MSAA_ALPHATEST_DX10_1
    I.tcdbump.xy += pixeloffset.x * ddx(I.tcdbump.xy) + pixeloffset.y * ddy(I.tcdbump.xy);
 #endif
-	float4 detail		= s_detail.Sample( smp_base, I.tcdbump);
-	S.base.rgb			= S.base.rgb * detail.rgb * 2;
-//	S.gloss				= S.gloss * detail.w * 2;
-#endif        //	USE_TDETAIL_BUMP
+	float4 detail = s_detail.Sample( smp_base, I.tcdbump);
+	S.base.rgb = lerp(S.base.rgb, detail.rgb, detail.w);
+#endif // USE_TDETAIL_BUMP
 #endif
 
 	return S;
