@@ -19,6 +19,10 @@ The format and layout is simple to understand:
 | name_bump.dds   | Normal.x | Normal.y | Roughness | Metalness  |
 | name_bump#.dds  | Empty    | Empty    | Empty     | Height map |
 
+Layout for detail textures is the same. Alpha became a blending factor:
+data = lerp(base_layer, detail_layer, detail_alpha);
+
+
 You should use good DXT5 compressor, especially for _bump textures!
 
 ## G-Buffer
