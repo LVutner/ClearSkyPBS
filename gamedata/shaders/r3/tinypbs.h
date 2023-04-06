@@ -231,7 +231,7 @@ float3 get_shading(
 
 	//Specular IBL (Approximated with filtered importance sampling)
 #ifdef LV_ENABLE_FIS	
-	float3 ibl_specular = fis_cubemap(N, V, roughness, width, blend_factor, t_current, t_next);
+	float3 ibl_specular = fis_cubemap(N, V, roughness * roughness, width, blend_factor, t_current, t_next);
 #else
 	float3 ibl_specular = sample_sky(reflect(-V, N), float(levels) * roughness, blend_factor, t_current, t_next);
 #endif
