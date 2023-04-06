@@ -133,11 +133,15 @@ float4 get_direct_shading(float3 N, float3 L, float3 H, float roughness)
 
 //Filtered importance sampling
 //https://developer.nvidia.com/gpugems/gpugems3/part-iii-rendering/chapter-20-gpu-based-importance-sampling
-float3 fis_cubemap(float3 N, float3 V, float alpha, float cubemap_width, float blend_factor, TextureCube t_current, TextureCube t_next)
+float3 fis_cubemap(float3 R, float alpha, float cubemap_width, float blend_factor, TextureCube t_current, TextureCube t_next)
 {
 	//Handle mirror reflections
 	if(alpha <= 0.0)
-		return sample_sky(reflect(-V, N), 0.0, blend_factor, t_current, t_next);
+		return sample_sky(R, 0.0, blend_factor, t_current, t_next);
+
+	//Isotropic assumption
+	float3 N = R;
+    float3 V = R;
 
 	//Build orthonormal basis
 	//This was taken from UE4 paper.
@@ -165,12 +169,12 @@ float3 fis_cubemap(float3 N, float3 V, float alpha, float cubemap_width, float b
 		//NdotL and NdotH. Clamped between 1e-5 - 1.0 due to NaNs...
 		float2 NdotL_H = clamp(float2(L_tangent.z, H_tangent.z), 1e-5, 1.0);
 
-		//Jacobian of reflection operator
-		float jacobian = saturate(dot(V_tangent, H_tangent)) * 4.0;
-
 		//Calculate PDF
-		//Cause we work in tangent space, we should include jacobian
-		float pdf = (ggx_ndf(NdotL_H.y, alpha) * NdotL_H.y) / jacobian;
+		//D * NdotH / (4.0 * VdotH) =>
+		//D * VdotH / (4.0 * VdotH) =>
+		//D / 4.0
+		//This simplification comes from isotropic assumption.
+		float pdf = ggx_ndf(NdotL_H.y, alpha) * 0.25;
 
 		//Calculate mip level
 		float mip_level = fis_calculate_mip(LV_FIS_SAMPLE_COUNT, pdf, cubemap_width);
@@ -211,11 +215,15 @@ float3 get_shading(
 	//Diffuse and specular color for metal-rough workflow
 	float3 diffuse_color = (1.0 - metalness) * albedo;
 	float3 specular_color = lerp((float3)0.04, albedo, metalness);
+
+	//GGX alpha
+	float alpha = roughness * roughness;
 	
 	//World space vectors
 	float3 P = mul(view_to_world, float4(vP.xyz, 1.0)).xyz; //Position
 	float3 N = mul(view_to_world, float4(vN.xyz, 0.0)).xyz; //Normal
 	float3 V = -normalize(P - eye_position); //View direction
+	float3 R = reflect(-V, N); //Reflection direction
 
 	//DFG LUT
 	float2 brdf_lut = ggx_dfg(saturate(dot(N, V)), roughness);
@@ -230,10 +238,10 @@ float3 get_shading(
 	float3 ibl_diffuse = sample_sky(N, 10.0, blend_factor, t_current, t_next);
 
 	//Specular IBL (Approximated with filtered importance sampling)
-#ifdef LV_ENABLE_FIS	
-	float3 ibl_specular = fis_cubemap(N, V, roughness * roughness, width, blend_factor, t_current, t_next);
+#ifdef LV_ENABLE_FIS
+	float3 ibl_specular = fis_cubemap(R, alpha, width, blend_factor, t_current, t_next);
 #else
-	float3 ibl_specular = sample_sky(reflect(-V, N), float(levels) * roughness, blend_factor, t_current, t_next);
+	float3 ibl_specular = sample_sky(R, float(levels) * roughness, blend_factor, t_current, t_next);
 #endif
 
 	//Maintain somewhat OK brightness...
